@@ -7,8 +7,8 @@
 #define ROUND_N_DIGITS(value, dozen) ((int32_t(value * pow(10.0f, dozen))) / pow(10.0f, dozen))
 
 // PI coefficients
-const float PROP_COEFF = 4.0f;
-const float DER_COEFF = 2.0f;
+const float PROP_COEFF = 0.2f;
+const float DER_COEFF = 0.15f;
 const uint8_t PWM_BASE = 80;
 
 // memorized var
@@ -27,6 +27,12 @@ enum MOTOR_SIDE
   MOTOR_NEG = 1
 };
 
+// motor pins
+const int PIN_M1 = 3;
+const int PIN_M2 = 5;
+const int PIN_M3 = 6;
+const int PIN_M4 = 9;
+
 uint8_t get_pwm_consign(float delta, float derivative, MOTOR_SIDE side)
 {
   float offset = PROP_COEFF * delta + DER_COEFF * delta;
@@ -43,7 +49,7 @@ uint8_t get_pwm_consign(float delta, float derivative, MOTOR_SIDE side)
       consign += offset;
       break;
   }
-  if (consign <= 0.0f) {return 0x00;}
+  if (consign <= 50.0f) {return 0x32;}
   else if (consign >= 255.0f) {return 0xff;}
   else {return (0xff & uint8_t(consign));}
 }
@@ -68,6 +74,12 @@ void setup() {
     stored_pitch = RAD_2_DEGREE(asin(x));
     stored_roll = RAD_2_DEGREE(asin(y));
   }
+
+  // init pins
+  pinMode(PIN_M1, OUTPUT);
+  pinMode(PIN_M2, OUTPUT);
+  pinMode(PIN_M3, OUTPUT);
+  pinMode(PIN_M4, OUTPUT);
 }
 
 void loop() 
@@ -103,7 +115,9 @@ void loop()
     Serial.println(derivative_roll);
     */
     float pwm_1 = get_pwm_consign(delta_pitch, derivative_pitch, MOTOR_POS);
+    analogWrite(PIN_M1, pwm_1);
     float pwm_2 = get_pwm_consign(delta_pitch, derivative_pitch, MOTOR_NEG);
+    analogWrite(PIN_M2, pwm_2);
     Serial.print("PWM left : ");
     Serial.print(pwm_1);
     Serial.print(", PWM right : ");
@@ -115,6 +129,6 @@ void loop()
     stored_time = time;
     
     // wait some time
-    delay(100);
+    delay(200);
   }
 }

@@ -34,13 +34,13 @@ const int PIN_M3 = 6;
 const int PIN_M4 = 9;
 
 // PI coefficients
-const float P_COEFF = 0.3f;
-const float I_COEFF = 0.1f;
-const float D_COEFF = 0.1f;
+const float P_COEFF = 0.3f; // if increased : reduce static error and adapt faster, but goes over consign
+const float I_COEFF = 0.0f; // if increased : reduce totally static error, but might provoke some oscillations if the system is not perfectly stable
+const float D_COEFF = 0.0f; // reduce static error and reduce overflow of the consign. but if too big : saturation of the regulator
 
 // memorized var
-static float stored_pitch = 0.0f;
-static float stored_roll = 0.0f;
+static float stored_error_pitch = 0.0f;
+static float stored_error_roll = 0.0f;
 static uint64_t stored_time = 0;
 
 // basic consigns
@@ -113,8 +113,8 @@ void setup()
     {
         stored_time = millis();
         IMU.readAcceleration(x, y, z);
-        stored_pitch = RAD_2_DEGREE(asin(x));
-        stored_roll = RAD_2_DEGREE(asin(y));
+        stored_error_pitch = RAD_2_DEGREE(asin(x));
+        stored_error_roll = RAD_2_DEGREE(asin(y));
     }
 
     // Initialize pins
@@ -161,18 +161,25 @@ void loop()
         float pitch = RAD_2_DEGREE(asin(x));
         float roll = RAD_2_DEGREE(asin(y));
 
-        // compute delta and derivatives
+        // compute errors (consign - measure)
+        float error_pitch = ROUND_N_DIGITS(consign_pitch - pitch, 1);
+        float error_roll = ROUND_N_DIGITS(consign_roll - roll, 1);
+
+        // delta time between two cycle
         unsigned long delta_time = time - stored_time;
-        float delta_pitch = ROUND_N_DIGITS(pitch - consign_pitch, 1);
-        float delta_roll = ROUND_N_DIGITS(roll - consign_roll, 1);
-        float derivative_pitch = ROUND_N_DIGITS((pitch - stored_pitch) / delta_time * 1000, 1); // degree/second
-        float derivative_roll = ROUND_N_DIGITS((roll - stored_roll) / delta_time * 1000, 1);    // degree/second
-        //float integrale_pitch = ROUND_N_DIGITS(, 1)
+
+        // derivatives of the errors
+        float derivative_error_pitch = ROUND_N_DIGITS((error_pitch - stored_error_pitch) / delta_time * 1000, 1); // degree/second
+        float derivative_error_roll = ROUND_N_DIGITS((error_roll - stored_error_roll) / delta_time * 1000, 1);    // degree/second
+
+        // integrales of the errors, assuming it is a triangle
+        float integrale_error_pitch = ROUND_N_DIGITS((error_pitch - stored_error_pitch) * delta_time / 2000, 1); // degree*second
+        float integrale_error_roll = ROUND_N_DIGITS((error_roll - stored_error_roll) * delta_time / 2000, 1); // degree*second
 
         // compute PWM consigns
-        float pwm_1 = get_pwm_consign(delta_pitch, 0.0f ,0.0f,  MOTOR_POS);
+        float pwm_1 = get_pwm_consign(error_pitch, derivative_error_pitch, integrale_error_pitch,  MOTOR_POS);
         analogWrite(PIN_M1, pwm_1);
-        float pwm_2 = get_pwm_consign(delta_pitch, 0.0f, 0.0f, MOTOR_NEG);
+        float pwm_2 = get_pwm_consign(error_pitch, derivative_error_roll, integrale_error_roll, MOTOR_NEG);
         analogWrite(PIN_M2, pwm_2);
         Serial.print("PWM left : ");
         Serial.print(pwm_1);
@@ -180,8 +187,8 @@ void loop()
         Serial.println(pwm_2);
 
         // save pitch, roll and time
-        stored_pitch = pitch;
-        stored_roll = roll;
+        stored_error_pitch = pitch;
+        stored_error_roll = roll;
         stored_time = time;
 
         // wait some time

@@ -11,11 +11,10 @@ const int PIN_M3 = 6;
 const int PIN_M4 = 9;
 
 /* variables for the BLE exchanges */
-BLEService drone_service("19B10010-E8F2-537E-4F6C-D104768A1214");
-BLEUnsignedCharCharacteristic drone_m1_characteristic("19B10011-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
-BLEUnsignedCharCharacteristic drone_m2_characteristic("19B10012-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
-BLEUnsignedCharCharacteristic drone_m3_characteristic("19B10013-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
-BLEUnsignedCharCharacteristic drone_m4_characteristic("19B10014-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
+BLEService drone_service("2700");
+BLEFloatCharacteristic pitch_characteristic("2701", BLERead | BLEWrite);
+BLEFloatCharacteristic roll_characteristic("2702", BLERead | BLEWrite);
+BLEUnsignedCharCharacteristic speed_characteristic("2703", BLERead | BLEWrite);
 
 void setup()
 {
@@ -40,10 +39,9 @@ void setup()
     BLE.setAdvertisedService(drone_service);
 
     /* Add the characteristics to the device */
-    drone_service.addCharacteristic(drone_m1_characteristic);
-    drone_service.addCharacteristic(drone_m2_characteristic);
-    drone_service.addCharacteristic(drone_m3_characteristic);
-    drone_service.addCharacteristic(drone_m4_characteristic);
+    drone_service.addCharacteristic(pitch_characteristic);
+    drone_service.addCharacteristic(roll_characteristic);
+    drone_service.addCharacteristic(speed_characteristic);
     
     /* Add service to peripheral */
     BLE.addService(drone_service);
@@ -55,16 +53,14 @@ void setup()
     */
 
     /* callback for write events */
-    drone_m1_characteristic.setEventHandler(BLEWritten, m1_cb);
-    drone_m2_characteristic.setEventHandler(BLEWritten, m2_cb);
-    drone_m3_characteristic.setEventHandler(BLEWritten, m3_cb);
-    drone_m4_characteristic.setEventHandler(BLEWritten, m4_cb);
+    pitch_characteristic.setEventHandler(BLEWritten, pitch_written_cb);
+    roll_characteristic.setEventHandler(BLEWritten, roll_written_cb);
+    speed_characteristic.setEventHandler(BLEWritten, speed_written_cb);
 
     /* Set an initial value */
-    drone_m1_characteristic.writeValue(0);
-    drone_m2_characteristic.writeValue(0);
-    drone_m3_characteristic.writeValue(0);
-    drone_m4_characteristic.writeValue(0);
+    pitch_characteristic.writeValue(0.0f);
+    roll_characteristic.writeValue(0.0f);
+    speed_characteristic.writeValue(0x00);
 
     /* Start advertising */
     BLE.advertise();
@@ -89,34 +85,23 @@ void disconnected_cb(BLECentral &central)
     Serial.println(central.address());
 }
 */
-void m1_cb(BLEDevice central, BLECharacteristic characteristic)
+void pitch_written_cb(BLEDevice central, BLECharacteristic characteristic)
 {
-    Serial.print("M1 : ");
-    const unsigned char m1 = drone_m1_characteristic.value();
-    Serial.println(m1);
-    analogWrite(PIN_M1, m1);
+    const float new_pitch = pitch_characteristic.value();
+    Serial.print("Pitch : ");
+    Serial.println(new_pitch);
 }
 
-void m2_cb(BLEDevice central, BLECharacteristic characteristic)
+void roll_written_cb(BLEDevice central, BLECharacteristic characteristic)
 {
-    Serial.print("M2 : ");
-    const unsigned char m2 = drone_m1_characteristic.value();
-    Serial.println(m2);
-    analogWrite(PIN_M2, m2);
+    const float new_roll = roll_characteristic.value();
+    Serial.print("Roll : ");
+    Serial.println(new_roll);
 }
 
-void m3_cb(BLEDevice central, BLECharacteristic characteristic)
+void speed_written_cb(BLEDevice central, BLECharacteristic characteristic)
 {
-    Serial.print("M3 : ");
-    const unsigned char m3 = drone_m1_characteristic.value();
-    Serial.println(m3);
-    analogWrite(PIN_M3, m3);
-}
-
-void m4_cb(BLEDevice central, BLECharacteristic characteristic)
-{
-    Serial.print("M4 : ");
-    const unsigned char m4 = drone_m1_characteristic.value();
-    Serial.println(m4);
-    analogWrite(PIN_M4, m4);
+    const unsigned char new_speed = speed_characteristic.value();
+    Serial.print("Speed : ");
+    Serial.println(new_speed);
 }

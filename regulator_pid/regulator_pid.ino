@@ -7,9 +7,9 @@
 #define ROUND_N_DIGITS(value, dozen) ((int32_t(value * pow(10.0f, dozen))) / pow(10.0f, dozen))
 
 // PI coefficients
-const float PROP_COEFF = 0.2f;
-const float DER_COEFF = 0.15f;
-const uint8_t PWM_BASE = 80;
+const float PROP_COEFF = 0.3f;
+const float DER_COEFF = 0.12f;
+const uint8_t PWM_BASE = 100;
 
 // memorized var
 static float stored_pitch = 0.0f;
@@ -129,6 +129,6 @@ void loop()
     stored_time = time;
     
     // wait some time
-    delay(200);
+    delay(180);
   }
 }

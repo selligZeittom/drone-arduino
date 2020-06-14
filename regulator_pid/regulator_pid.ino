@@ -1,4 +1,14 @@
-#include <Arduino_LSM9DS1.h> /* 9 axis IMU */
+// Using an Arduino Nano 33 BLE Sense (0) or and Arduino Nano 33 IoT (1)?
+#define ARDUINO_NANO 1
+
+// Include libraries for the sensors
+#if ARDUINO_NAN0 == 0
+#include <Arduino_LSM9DS1.h> /* 9 axis IMU for Arduino Nano 33 BLE Sense*/
+#elif ARDUINO_NAN0 == 1
+#include <Arduino_LSM6DS3.h> /* 9 axis IMU for Arduino Nano 33 IoT*/
+#endif
+
+// working with maths
 #include <math.h>
 
 // conversion macros
@@ -62,7 +72,7 @@ void setup() {
   if (!IMU.begin()) 
   {
     Serial.println("Failed to initialize IMU...");
-    while (1);
+    while (1){Serial.println("IMU initialialization failed..");}
   }
   
   // Initialize stored values
